@@ -16,6 +16,12 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  rooms: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Room',
+    },
+  ],
 });
 
 // Middleware to hash the password before saving a new user
@@ -28,7 +34,7 @@ UserSchema.pre('save', async function (next) {
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (err) {
-    throw err
+    throw err;
   }
 });
 
