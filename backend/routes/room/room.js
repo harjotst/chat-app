@@ -1,9 +1,9 @@
 const express = require('express');
-const mongoose = require('mongoose');
+const { Types } = require('mongoose');
 const router = express.Router();
-const Room = require('../models/Room');
-const User = require('../models/User');
-const Activity = require('../models/Activity');
+const Room = require('../../models/Room');
+const User = require('../../models/User');
+const Activity = require('../../models/Activity');
 
 const crypto = require('crypto');
 
@@ -59,7 +59,7 @@ router.post('/create', async (req, res) => {
 router.delete('/:roomId', async (req, res) => {
   const roomId = req.params.roomId;
 
-  if (!mongoose.Types.ObjectId.isValid(roomId)) {
+  if (!Types.ObjectId.isValid(roomId)) {
     return res.status(404).json({ msg: 'Invalid Object ID' });
   }
 
@@ -95,7 +95,7 @@ router.put('/:roomId', async (req, res) => {
   try {
     const { roomId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+    if (!Types.ObjectId.isValid(roomId)) {
       return res.status(404).json({ msg: 'Invalid Object ID' });
     }
 
@@ -184,7 +184,7 @@ router.post('/:joinCode/join', async (req, res) => {
 router.put('/:roomId/update-join-code', async (req, res) => {
   const { roomId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(roomId)) {
+  if (!Types.ObjectId.isValid(roomId)) {
     return res.status(404).json({ msg: 'Invalid Object ID' });
   }
 
@@ -216,7 +216,7 @@ router.post('/:roomId/kick/:userId', async (req, res) => {
   try {
     const roomId = req.params.roomId;
 
-    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+    if (!Types.ObjectId.isValid(roomId)) {
       return res.status(404).json({ msg: 'Invalid Room Object ID' });
     }
 
@@ -236,7 +236,7 @@ router.post('/:roomId/kick/:userId', async (req, res) => {
         .json({ msg: 'You are not authorized to kick users from this room' });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+    if (!Types.ObjectId.isValid(targetUserId)) {
       return res.status(404).json({ msg: 'Invalid User Object ID' });
     }
 
@@ -275,7 +275,7 @@ router.post('/:roomId/kick/:userId', async (req, res) => {
 router.post('/:roomId/leave', async (req, res) => {
   const { roomId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(roomId)) {
+  if (!Types.ObjectId.isValid(roomId)) {
     return res.status(404).json({ msg: 'Invalid Object ID' });
   }
 
@@ -336,7 +336,7 @@ router.get('/:roomId/users', async (req, res) => {
   try {
     const { roomId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+    if (!Types.ObjectId.isValid(roomId)) {
       return res.status(404).json({ msg: 'Invalid Object ID' });
     }
 

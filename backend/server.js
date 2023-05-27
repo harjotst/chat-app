@@ -8,7 +8,9 @@ const { sessionConfig } = require('./config/redis');
 
 const authRoutes = require('./routes/auth');
 
-const roomRoutes = require('./routes/room');
+const roomRoutes = require('./routes/room/room');
+
+const messagesRoutes = require('./routes/room/messages');
 
 const app = express();
 
@@ -21,6 +23,8 @@ connectDB();
 app.use('/api/auth', authRoutes);
 
 app.use('/api/room', roomRoutes);
+
+app.use('/api/room', messagesRoutes);
 
 app.listen(config.PORT, () => {
   console.log(`Server is running on port ${config.PORT}`);
