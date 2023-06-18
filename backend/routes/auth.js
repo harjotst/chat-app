@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 
+// done & tested
 router.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -30,6 +31,7 @@ router.post('/register', async (req, res) => {
   res.status(201).json({ user: req.session.user });
 });
 
+// done & tested
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -60,6 +62,7 @@ router.post('/login', async (req, res) => {
   res.status(200).json({ user: req.session.user });
 });
 
+// done & tested
 router.post('/logout', (req, res) => {
   if (req.session.user) {
     req.session.destroy((err) => {

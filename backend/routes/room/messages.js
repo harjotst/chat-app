@@ -8,6 +8,8 @@ const Room = require('../../models/Room');
 
 const Activity = require('../../models/Activity');
 
+const config = require('../../config/config');
+
 const isAuthenticated = (req, res, next) => {
   if (req.session && req.session.user) {
     next();
@@ -47,7 +49,7 @@ router.get('/:roomId/messages/:page', async (req, res) => {
         .json({ msg: 'You must be a member of the room to view its messages' });
     }
 
-    const messages = await Activity.find({ roomId })
+    let messages = await Activity.find({ roomId })
       .populate({
         path: 'userId',
         select: '-password -rooms',
@@ -55,6 +57,23 @@ router.get('/:roomId/messages/:page', async (req, res) => {
       .skip(skipMessages)
       .limit(messagesPerPage)
       .sort({ createdAt: -1 });
+
+    for (let message of messages) {
+      if (message.contentType === 'file') {
+        const params = {
+          Bucket: config.AWS_PRIVATE_BUCKET,
+          Key: message.fileKey,
+          Expires: 60 * 5, // URL will be valid for 5 minutes
+        };
+
+        message.fileUrl = await new Promise((resolve, reject) => {
+          s3.getSignedUrl('getObject', params, (err, url) => {
+            if (err) reject(err);
+            else resolve(url);
+          });
+        });
+      }
+    }
 
     res.status(200).json({ messages });
   } catch (error) {
@@ -204,6 +223,81 @@ router.delete('/:roomId/messages/:messageId', async (req, res) => {
     console.error(error);
     res.status(500).json({ msg: 'Server error' });
   }
+});
+
+// done & tested
+router.post('/:roomId/uploadFile', upload.single('file'), async (req, res) => {
+  const { roomId } = req.params;
+
+  const userId = req.session.user.id;
+
+  if (!mongoose.Types.ObjectId.isValid(roomId)) {
+    return res.status(400).send({ error: 'Invalid roomId' });
+  }
+
+  const room = await Room.findById(roomId);
+
+  if (!room) {
+    return res.status(404).send({ error: 'Room not found' });
+  }
+
+  if (!room.members.includes(userId)) {
+    return res.status(403).send({ error: 'User is not a member of the room' });
+  }
+
+  const fileExtension = req.file.originalname.split('.').pop();
+
+  const key = `rooms/${roomId}/${uuidv4()}.${fileExtension}`;
+
+  const fileStream = fs.createReadStream(req.file.path);
+
+  const params = {
+    Bucket: config.AWS_PRIVATE_BUCKET,
+    Key: key,
+    Body: fileStream,
+  };
+
+  s3.upload(params, async (err, data) => {
+    fs.unlinkSync(req.file.path);
+
+    if (err) {
+      console.log('Error', err);
+
+      return res.status(500).send(err);
+    }
+
+    if (data) {
+      const activity = new Activity({
+        contentType: 'file',
+        fileKey: data.Key,
+        userId,
+        roomId,
+      });
+
+      try {
+        await activity.save();
+
+        const params = {
+          Bucket: config.AWS_PRIVATE_BUCKET,
+          Key: data.Key,
+          Expires: 60, // URL will be valid for 5 minutes
+        };
+
+        const url = await new Promise((resolve, reject) => {
+          s3.getSignedUrl('getObject', params, (err, url) => {
+            if (err) reject(err);
+            else resolve(url);
+          });
+        });
+
+        res.send({ message: 'File uploaded successfully', url });
+      } catch (err) {
+        console.log('Error', err);
+
+        return res.status(500).send(err);
+      }
+    }
+  });
 });
 
 module.exports = router;

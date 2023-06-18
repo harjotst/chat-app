@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const ActivitySchema = new mongoose.Schema({
   contentType: {
     type: String,
-    enum: ['message', 'event'],
+    enum: ['message', 'event', 'file'],
     required: true,
   },
   content: {
@@ -17,6 +17,12 @@ const ActivitySchema = new mongoose.Schema({
     enum: ['join', 'leave', 'kick', 'rename'],
     required() {
       return this.contentType === 'event';
+    },
+  },
+  fileKey: {
+    type: String,
+    required() {
+      return this.contentType === 'file';
     },
   },
   userId: {
