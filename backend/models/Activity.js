@@ -6,11 +6,27 @@ const ActivitySchema = new mongoose.Schema({
     enum: ['message', 'event', 'file'],
     required: true,
   },
-  content: {
-    type: String,
-    required() {
-      return this.contentType === 'message';
+  messageInformation: {
+    message: {
+      type: String,
+      required: this.contentType === 'message',
     },
+    language: {
+      type: String,
+      required: this.contentType === 'message', 
+    },
+    translations: [
+      {
+        language: {
+          type: String,
+          required: this.contentType === 'message',
+        },
+        message: {
+          type: String,
+          required: this.contentType === 'message',
+        },
+      },
+    ],
   },
   eventType: {
     type: String,

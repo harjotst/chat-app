@@ -9,7 +9,9 @@ router.post('/register', async (req, res) => {
   let user = await User.findOne({ email });
 
   if (user) {
-    return res.status(400).json({ msg: 'User already exists' });
+    return res.status(400).json({
+      msg: `A user with email '${email}' already exists. Please use another email.`,
+    });
   }
 
   user = new User({ username, email, password });
@@ -18,7 +20,7 @@ router.post('/register', async (req, res) => {
 
   req.session.user = {
     id: user._id,
-    username: user.username,
+    name: user.username,
     email: user.email,
   };
 
@@ -49,8 +51,10 @@ router.post('/login', async (req, res) => {
 
   req.session.user = {
     id: user._id,
-    username: user.username,
+    name: user.username,
     email: user.email,
+    pfp: user.profilePicture,
+    preferredLanguage: user.preferredLanguage,
   };
 
   res.cookie('connect.sid', req.sessionID, {
@@ -77,6 +81,19 @@ router.post('/logout', (req, res) => {
   } else {
     return res.status(400).json({ msg: 'No active session found' });
   }
+});
+
+// done & tested
+router.get('/validate-session', (req, res) => {
+  const sessionId = req.sessionID;
+
+  req.sessionStore.get(sessionId, (err, session) => {
+    if (err || !session) {
+      return res.status(401).json({ msg: 'Invalid session' });
+    }
+
+    return res.status(200).json({ msg: 'Valid session', user: session.user });
+  });
 });
 
 module.exports = router;

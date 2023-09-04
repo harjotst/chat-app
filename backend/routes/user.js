@@ -1,11 +1,9 @@
 const express = require('express');
 const User = require('../models/User');
-const multer = require('multer');
 const config = require('../config/config');
+const upload = require('../config/multer');
 
 const s3 = require('../config/s3');
-
-const upload = multer({ dest: 'uploads' });
 
 const router = express.Router();
 

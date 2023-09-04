@@ -6,9 +6,15 @@ const { Types } = require('mongoose');
 
 const Room = require('../../models/Room');
 
+const User = require('../../models/User');
+
 const Activity = require('../../models/Activity');
 
 const config = require('../../config/config');
+
+const upload = require('../../config/multer');
+
+const { translateMessage } = require('../../utils/translate');
 
 const isAuthenticated = (req, res, next) => {
   if (req.session && req.session.user) {
@@ -41,6 +47,8 @@ router.get('/:roomId/messages/:page', async (req, res) => {
 
     const userId = req.session.user.id;
 
+    const user = await User.findById(userId);
+
     const isMember = room.members.some((member) => member.equals(userId));
 
     if (!isMember) {
@@ -49,24 +57,45 @@ router.get('/:roomId/messages/:page', async (req, res) => {
         .json({ msg: 'You must be a member of the room to view its messages' });
     }
 
-    let messages = await Activity.find({ roomId })
+    let activities = await Activity.find({ roomId })
       .populate({
         path: 'userId',
         select: '-password -rooms',
       })
       .skip(skipMessages)
       .limit(messagesPerPage)
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: 1 });
 
-    for (let message of messages) {
-      if (message.contentType === 'file') {
+    for (let activity of activities) {
+      if (activity.contentType === 'message') {
+        const translated =
+          activity.messageInformation.language === user.preferredLanguage ||
+          activity.messageInformation.translations.some(
+            (translation) => translation.language === user.preferredLanguage
+          );
+
+        if (!translated) {
+          const translatedMessage = await translateMessage(
+            activity.messageInformation.message,
+            activity.messageInformation.language,
+            user.preferredLanguage
+          );
+
+          activity.messageInformation.translations.push({
+            language: user.preferredLanguage,
+            message: translatedMessage,
+          });
+
+          await activity.save();
+        }
+      } else if (activity.contentType === 'file') {
         const params = {
           Bucket: config.AWS_PRIVATE_BUCKET,
-          Key: message.fileKey,
-          Expires: 60 * 5, // URL will be valid for 5 minutes
+          Key: activity.fileKey,
+          Expires: 60 * 5,
         };
 
-        message.fileUrl = await new Promise((resolve, reject) => {
+        activity.fileUrl = await new Promise((resolve, reject) => {
           s3.getSignedUrl('getObject', params, (err, url) => {
             if (err) reject(err);
             else resolve(url);
@@ -75,7 +104,7 @@ router.get('/:roomId/messages/:page', async (req, res) => {
       }
     }
 
-    res.status(200).json({ messages });
+    res.status(200).json({ messages: activities });
   } catch (error) {
     console.error(error);
     res.status(500).json({ msg: 'Server error' });
@@ -83,7 +112,7 @@ router.get('/:roomId/messages/:page', async (req, res) => {
 });
 
 // done & tested
-router.post('/:roomId/messages', async (req, res) => {
+router.post('/:roomId/create-message', async (req, res) => {
   try {
     const { roomId } = req.params;
 
@@ -109,24 +138,67 @@ router.post('/:roomId/messages', async (req, res) => {
         .json({ msg: 'You must be a member of the room to post a message' });
     }
 
+    const user = await User.findById(userId);
+
+    let languages = await room.populate({
+      path: 'members',
+      select: 'preferredLanguage -_id',
+    });
+
+    languages = [
+      ...new Set(
+        languages.members.map((language) => language.preferredLanguage)
+      ),
+    ].filter((language) => language !== user.preferredLanguage);
+
+    let translations;
+
+    try {
+      const translationPromise = languages.map(async (language) => {
+        const translation = await translateMessage(
+          content,
+          user.preferredLanguage,
+          language
+        );
+        return {
+          message: translation,
+          language,
+        };
+      });
+
+      translations = await Promise.all(translationPromise);
+    } catch (error) {
+      res.status(500).json({ msg: error });
+    }
+
     const message = new Activity({
       roomId,
-      content,
       userId,
+      messageInformation: {
+        message: content,
+        language: user.preferredLanguage,
+        translations,
+      },
       contentType: 'message',
     });
 
     await message.save();
 
-    res.status(201).send();
+    await message.populate({
+      path: 'userId',
+      select: '-password -rooms',
+    });
+
+    res.status(201).json({ message });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ msg: 'Server error' });
+
+    res.status(500).json({ msg: error });
   }
 });
 
 // done & tested
-router.put('/:roomId/messages/:messageId', async (req, res) => {
+router.put('/:roomId/message/:messageId', async (req, res) => {
   try {
     const { roomId, messageId } = req.params;
 
@@ -166,7 +238,7 @@ router.put('/:roomId/messages/:messageId', async (req, res) => {
         .json({ msg: 'You can only edit your own messages' });
     }
 
-    message.content = content;
+    message.messageInformation.message = content;
 
     await message.save();
 
