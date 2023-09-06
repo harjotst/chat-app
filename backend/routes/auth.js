@@ -4,7 +4,7 @@ const User = require('../models/User');
 
 // done & tested
 router.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, preferredLanguage } = req.body;
 
   let user = await User.findOne({ email });
 
@@ -14,7 +14,7 @@ router.post('/register', async (req, res) => {
     });
   }
 
-  user = new User({ username, email, password });
+  user = new User({ username, email, password, preferredLanguage });
 
   await user.save();
 
@@ -22,6 +22,7 @@ router.post('/register', async (req, res) => {
     id: user._id,
     name: user.username,
     email: user.email,
+    preferredLanguage,
   };
 
   res.cookie('connect.sid', req.sessionID, {

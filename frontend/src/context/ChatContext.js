@@ -1,5 +1,8 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
+
 import { useSocket } from '../hooks/useSocket';
+
+import { useUser } from '../hooks/useUser';
 
 import apiClient from '../services/api';
 
@@ -9,7 +12,55 @@ export const ChatProvider = ({ children }) => {
   const [rooms, setRooms] = useState([]);
   const [messages, setMessages] = useState({});
   const [currentRoom, setCurrentRoom] = useState(null);
+  const { user } = useUser();
   const { emitEvent } = useSocket();
+
+  useEffect(() => {
+    if (user) {
+      const fetchRoomsAndInitialMessages = async () => {
+        const roomResponse = await apiClient.get('/room/my-rooms', {
+          withCredentials: true,
+        });
+        const fetchedRooms = roomResponse.data.rooms;
+
+        setRooms(fetchedRooms);
+
+        emitEvent(
+          'join_rooms',
+          fetchedRooms.map((room) => room._id)
+        );
+
+        if (fetchedRooms.length > 0) {
+          setCurrentRoom(fetchedRooms[0]);
+        }
+
+        for (const room of fetchedRooms) {
+          await fetchInitialMessages(room._id);
+        }
+      };
+
+      fetchRoomsAndInitialMessages();
+    }
+  }, [user]);
+
+  useSocket('new_message', (newMessage) => {
+    setMessages((prevMessages) => {
+      console.log(newMessage, user);
+
+      const { roomId } = newMessage;
+
+      newMessage.messageInformation.translation =
+        newMessage.messageInformation.translations.find(
+          (translation) => translation.language === user.preferredLanguage
+        );
+
+      delete newMessage.messageInformation.translations;
+
+      const roomMessages = prevMessages[roomId] || [];
+
+      return { ...prevMessages, [roomId]: [...roomMessages, newMessage] };
+    });
+  });
 
   const fetchInitialMessages = async (roomId) => {
     const response = await apiClient.get(`/room/${roomId}/messages/1`, {
@@ -18,40 +69,6 @@ export const ChatProvider = ({ children }) => {
     const newMessages = response.data.messages;
     setMessages((prevMessages) => ({ ...prevMessages, [roomId]: newMessages }));
   };
-
-  useEffect(() => {
-    const fetchRoomsAndInitialMessages = async () => {
-      const roomResponse = await apiClient.get('/room/my-rooms', {
-        withCredentials: true,
-      });
-      const fetchedRooms = roomResponse.data.rooms;
-
-      setRooms(fetchedRooms);
-
-      emitEvent(
-        'join_rooms',
-        fetchedRooms.map((room) => room._id)
-      );
-
-      if (fetchedRooms.length > 0) {
-        setCurrentRoom(fetchedRooms[0]);
-      }
-
-      for (const room of fetchedRooms) {
-        await fetchInitialMessages(room._id);
-      }
-    };
-
-    fetchRoomsAndInitialMessages();
-  }, []);
-
-  useSocket('new_message', (newMessage) => {
-    setMessages((prevMessages) => {
-      const { roomId } = newMessage;
-      const roomMessages = prevMessages[roomId] || [];
-      return { ...prevMessages, [roomId]: [...roomMessages, newMessage] };
-    });
-  });
 
   const fetchMoreMessages = async (roomId, page) => {
     const response = await apiClient.get(`/room/${roomId}/messages/${page}`, {
@@ -90,7 +107,9 @@ export const ChatProvider = ({ children }) => {
         rooms,
         messages,
         currentRoom,
+        setRooms,
         setCurrentRoom,
+        fetchInitialMessages,
         fetchMoreMessages,
         sendMessage,
       }}

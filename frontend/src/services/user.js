@@ -1,6 +1,6 @@
 import apiClient from './api';
 
-const registerUser = async (username, email, password) => {
+const registerUser = async (username, email, password, preferredLanguage) => {
   try {
     const res = await apiClient.post(
       '/auth/register',
@@ -8,6 +8,7 @@ const registerUser = async (username, email, password) => {
         username,
         email,
         password,
+        preferredLanguage,
       },
       { withCredentials: true }
     );

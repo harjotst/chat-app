@@ -1,5 +1,17 @@
 import apiClient from './api';
 
+const joinRoom = async (joinCode) => {
+  try {
+    const res = await apiClient.post(`/room/${joinCode}/join`, null, {
+      withCredentials: true,
+    });
+
+    return res.data.roomId;
+  } catch (error) {
+    throw new Error(error.response.data.msg);
+  }
+};
+
 const createRoom = async (name) => {
   try {
     const res = await apiClient.post(
@@ -10,7 +22,7 @@ const createRoom = async (name) => {
       }
     );
 
-    return res.data;
+    return res.data.roomId;
   } catch (error) {
     throw new Error(error.response.data.msg);
   }
@@ -28,4 +40,4 @@ const getMyRooms = async () => {
   }
 };
 
-export { createRoom, getMyRooms };
+export { getMyRooms, createRoom, joinRoom };

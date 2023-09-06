@@ -6,7 +6,7 @@ export default function RoomList() {
   const { rooms, currentRoom, setCurrentRoom } = useChat();
 
   const computeRoomStyles = (roomId) => {
-    if (currentRoom._id !== roomId) {
+    if (currentRoom && currentRoom._id !== roomId) {
       return 'w-full p-4 cursor-pointer hover:bg-gray-100';
     } else {
       return 'w-full p-4 cursor-pointer bg-gray-200';

@@ -68,6 +68,8 @@ router.get('/:roomId/messages/:page', async (req, res) => {
 
     for (let activity of activities) {
       if (activity.contentType === 'message') {
+        const activityObject = activity.toObject();
+
         const translated =
           activity.messageInformation.language === user.preferredLanguage ||
           activity.messageInformation.translations.some(
@@ -88,6 +90,13 @@ router.get('/:roomId/messages/:page', async (req, res) => {
 
           await activity.save();
         }
+
+        activityObject.messageInformation.translation =
+          activity.messageInformation.translations.find(
+            (translation) => translation.language === user.preferredLanguage
+          );
+
+        activities[activities.indexOf(activity)] = activityObject;
       } else if (activity.contentType === 'file') {
         const params = {
           Bucket: config.AWS_PRIVATE_BUCKET,

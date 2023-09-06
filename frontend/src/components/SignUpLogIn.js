@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import languageShortForms from '../data/languages';
+
 import { useUser } from '../hooks/useUser';
 
 import { loginUser, registerUser } from '../services/user';
@@ -15,6 +17,7 @@ const SignUpLogIn = () => {
     name: '',
     email: '',
     password: '',
+    language: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -76,6 +79,15 @@ const SignUpLogIn = () => {
           setErrors((prev) => ({ ...prev, password: null }));
         }
         break;
+      case 'language':
+        if (!value) {
+          setErrors((prev) => ({
+            ...prev,
+            language: 'Select a valid language',
+          }));
+        } else {
+          setErrors((prev) => ({ ...prev, language: null }));
+        }
       default:
         break;
     }
@@ -96,6 +108,10 @@ const SignUpLogIn = () => {
       newErrors.password = 'Password is required';
     }
 
+    if (action === 'signup' && (!formData.language || !touched.language)) {
+      newErrors.name = 'Select a valid language';
+    }
+
     setErrors(newErrors);
 
     const hasErrors = Object.values(newErrors).some((error) => error);
@@ -109,8 +125,6 @@ const SignUpLogIn = () => {
     if (action === 'login') {
       loginUser(formData.email, formData.password)
         .then((result) => {
-          // console.log('Login occurred.', result);
-
           setUser(result.user);
         })
         .catch((error) => {
@@ -121,10 +135,13 @@ const SignUpLogIn = () => {
           setShowPopUpError(true);
         });
     } else if (action === 'signup') {
-      registerUser(formData.name, formData.email, formData.password)
+      registerUser(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.language
+      )
         .then((result) => {
-          // console.log('Sign Up occurred.', result);
-
           setUser(result.user);
         })
         .catch((error) => {
@@ -241,6 +258,29 @@ const SignUpLogIn = () => {
             {errors.password && touched.password && errors.password}
           </div>
         </div>
+        {signUp && (
+          <div className='relative w-full'>
+            <select
+              name='language'
+              placeholder='Preferred Language'
+              className={computeInputClasses('language')}
+              onChange={handleInputChange}
+              onBlur={handleBlur}
+            >
+              <option value='' defaultChecked>
+                Preferred Language
+              </option>
+              {Object.entries(languageShortForms).map(([language, code]) => (
+                <option key={code} value={code}>
+                  {language}
+                </option>
+              ))}
+            </select>
+            <div className={computeErrorClasses('language')}>
+              {errors.language && touched.language && errors.language}
+            </div>
+          </div>
+        )}
         <button
           className='text-center font-normal w-full px-3 py-2 mt-1 border border-blue-500 rounded-md bg-blue-500 text-white hover:bg-blue-600 hover:border-blue-600 transition-colors duration-200 mb-1'
           onClick={() => handleSubmit(signUp ? 'signup' : 'login')}

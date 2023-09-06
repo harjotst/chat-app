@@ -47,7 +47,7 @@ router.post('/create', async (req, res) => {
 
     await user.save();
 
-    res.status(201).json({ msg: 'Room created' });
+    res.status(201).json({ msg: 'Room created', roomId: room._id });
   } catch (error) {
     console.error(error);
 
@@ -168,16 +168,18 @@ router.post('/:joinCode/join', async (req, res) => {
 
   await user.save();
 
-  const joinActivity = new Activity({
-    contentType: 'event',
-    eventType: 'join',
-    userId: userId,
-    roomId: room._id,
-  });
+  // const joinActivity = new Activity({
+  //   contentType: 'event',
+  //   eventType: 'join',
+  //   userId: userId,
+  //   roomId: room._id,
+  // });
 
-  await joinActivity.save();
+  // await joinActivity.save();
 
-  res.status(200).json({ msg: 'Joined the room successfully' });
+  res
+    .status(200)
+    .json({ msg: 'Joined the room successfully', roomId: room._id });
 });
 
 // done && tested
