@@ -19,9 +19,9 @@ export default function UserInfo() {
         />
         <div className='ml-4 font-bold'>{user.name}</div>
       </div>
-      <button className='flex items-center justify-center border border-gray-300 hover:border-gray-400 rounded-full text-gray-500 hover:text-gray-600 w-10 h-10 transition-all duration-75'>
+      {/* <button className='flex items-center justify-center border border-gray-300 hover:border-gray-400 rounded-full text-gray-500 hover:text-gray-600 w-10 h-10 transition-all duration-75'>
         <FontAwesomeIcon icon={faEllipsisVertical} />
-      </button>
+      </button> */}
     </div>
   );
 }

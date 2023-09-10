@@ -7,6 +7,7 @@ const initiateSockets = () => {
     cors: {
       origin: 'http://localhost:3000',
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
@@ -20,8 +21,6 @@ const initiateSockets = () => {
     });
 
     socket.on('new_message', (message, room) => {
-      console.log(socket.rooms);
-
       io.to(room).emit('new_message', message);
     });
 

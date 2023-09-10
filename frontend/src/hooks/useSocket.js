@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { io } from 'socket.io-client';
 
+import env from '../config/env';
+
 export let sharedSocket;
 
 export const resetSharedSocket = () => {
@@ -17,7 +19,9 @@ export const useSocket = (eventName, callback) => {
 
   useEffect(() => {
     if (!sharedSocket) {
-      sharedSocket = io('http://localhost:8080');
+      sharedSocket = io(process.env.REACT_APP_API_URL, {
+        withCredentials: true,
+      });
     }
 
     setSocket(sharedSocket);

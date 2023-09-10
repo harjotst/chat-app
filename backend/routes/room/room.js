@@ -322,7 +322,7 @@ router.get('/my-rooms', async (req, res) => {
 
     const user = await User.findById(userId).populate({
       path: 'rooms',
-      select: '-joinCode -members',
+      select: '-members',
     });
 
     res.status(200).json({ rooms: user.rooms });

@@ -29,7 +29,7 @@ export default function CreateRoom() {
 
       const rooms = await getMyRooms();
 
-      await fetchInitialMessages(roomId)
+      await fetchInitialMessages(roomId);
 
       setRooms(rooms);
 
@@ -49,7 +49,7 @@ export default function CreateRoom() {
 
       const rooms = await getMyRooms();
 
-      await fetchInitialMessages(roomId)
+      await fetchInitialMessages(roomId);
 
       setRooms(rooms);
 
@@ -63,7 +63,7 @@ export default function CreateRoom() {
 
   return (
     <>
-      <div className='flex flex-row items-center justify-between px-6 py-5 border-b border-gray-300'>
+      <div className='flex flex-row items-center justify-between p-4 py-7 border-b border-gray-300'>
         <h2 className='text-base font-bold'>Rooms</h2>
         <div className='flex flex-row items-center'>
           <button

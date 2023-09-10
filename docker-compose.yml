@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  react-app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    networks:
+      - frontend
+      - backend
+
+  node-app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+    networks:
+      - frontend
+      - backend
+      # - cache
+      - translate
+
+  libretranslate:
+    image: libretranslate/libretranslate
+    tty: true
+    ports:
+      - '6000:5000'
+    networks:
+      - translate
+
+networks:
+  frontend:
+  backend:
+  translate:
+    driver: bridge

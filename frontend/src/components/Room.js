@@ -12,6 +12,8 @@ export default function Room() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const [joinCodeText, setJoinCodeText] = useState('Copy Join Code');
+
   const scrollableDivRef = useRef();
 
   useEffect(() => {
@@ -30,9 +32,21 @@ export default function Room() {
     }
   };
 
+  const copyJoinCode = () => {
+    navigator.clipboard.writeText(currentRoom.joinCode).then(() => {
+      console.log('Text copied to clipboard');
+
+      setJoinCodeText('Join Code Copied');
+
+      setTimeout(() => {
+        setJoinCodeText('Copy Join Code');
+      }, 1750);
+    });
+  };
+
   return (
     <section className='w-2/3 bg-white overflow-auto flex flex-col justify-between'>
-      <div className='flex justify-start items-center p-4 py-7 border-b border-gray-300'>
+      <div className='flex justify-between items-center p-4 py-7 border-b border-gray-300'>
         {loading ? (
           <div>Loading...</div>
         ) : (
@@ -43,6 +57,12 @@ export default function Room() {
           alt="Person's picture"
         /> */}
             <div className='font-bold'>{currentRoom.name}</div>
+            <button
+              className='text-sm p-2 border border-gray-300 hover:border-gray-400 rounded-lg text-gray-500 hover:text-gray-600 transition-all duration-75'
+              onClick={copyJoinCode}
+            >
+              {joinCodeText}
+            </button>
             {/* <button className='ml-auto w-8 h-8 flex items-center justify-center bg-white border border-gray-300 rounded-full'>
               <FontAwesomeIcon icon={faInfo} />
             </button> */}
