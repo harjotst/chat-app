@@ -1,7 +1,9 @@
 const cors = require('cors');
 
+const config = require('./config');
+
 module.exports = cors({
-  origin: 'http://localhost:3000',
+  origin: `http://${config.FRONTEND_HOST}:${config.FRONTEND_PORT}`,
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true,
 });

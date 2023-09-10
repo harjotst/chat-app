@@ -1,11 +1,12 @@
 const socketIo = require('socket.io');
 
 const httpServer = require('./server');
+const config = require('./config');
 
 const initiateSockets = () => {
   const io = socketIo(httpServer, {
     cors: {
-      origin: 'http://localhost:3000',
+      origin: `http://${config.FRONTEND_HOST}:${config.FRONTEND_PORT}`,
       methods: ['GET', 'POST'],
       credentials: true,
     },
