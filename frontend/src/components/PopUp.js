@@ -15,7 +15,7 @@ function Popup({ show, close, children }) {
       onClick={close}
     >
       <div
-        className='inline-flex flex-col bg-white p-8 rounded-lg text-amber-700 max-w-sm'
+        className='inline-flex flex-col bg-white p-8 rounded-lg max-w-md'
         onClick={stopPropagation}
       >
         {children}

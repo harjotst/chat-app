@@ -1,8 +1,8 @@
-import React, { createContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 
 import { useUser } from '../hooks/useUser';
 
-import { io } from 'socket.io-client';
+import { useSocket } from '../hooks/useSocket';
 
 import {
 	createRoom,
@@ -14,7 +14,6 @@ import {
 	updateRoomCode,
 	leaveRoom,
 	kickUserFromRoom,
-	getRoomMembers,
 } from '../services/room';
 
 export const ChatContext = createContext();
@@ -30,26 +29,10 @@ export const ChatProvider = ({ children }) => {
 
 	const [currentRoom, setCurrentRoom] = useState(null);
 
-	const [currentRoomMembers, setCurrentRoomMembers] = useState([]);
-
-	const socketRef = useRef(null);
-
-	useEffect(() => {
-		if (!socketRef.current) {
-			socketRef.current = io(process.env.REACT_APP_API_URL, { withCredentials: true });
-		}
-
-		return () => {
-			if (socketRef.current) {
-				socketRef.current.disconnect();
-			}
-		};
-	}, []);
+	const socket = io(process.env.REACT_APP_API_URL, { withCredentials: true });
 
 	useEffect(() => {
 		const handleNewMessage = (newMessage) => {
-			// console.log('Handle New Message');
-
 			setRoomsMessages((prevRoomsMessages) => {
 				const { roomId } = newMessage;
 
@@ -67,8 +50,6 @@ export const ChatProvider = ({ children }) => {
 		};
 
 		const handleFileMessage = (newFile) => {
-			// console.log('Handle File Message');
-
 			setRoomsMessages((prevRoomsMessages) => {
 				const roomMessages = prevRoomsMessages[newFile.roomId] || [];
 
@@ -76,13 +57,8 @@ export const ChatProvider = ({ children }) => {
 			});
 		};
 
-		const handleActivityMessage = async (newEvent) => {
-			// console.log('Handle Activity Message');
-
-			if (
-				(newEvent.eventType === 'join' || newEvent.eventType === 'leave') &&
-				newEvent.userId._id === user.id
-			) {
+		const handleActivityMessage = (newEvent) => {
+			if (newEvent.eventType === 'join' && newEvent.userId._id === user.id) {
 				return;
 			}
 
@@ -109,20 +85,22 @@ export const ChatProvider = ({ children }) => {
 
 				return { ...prevRoomsMessages, [newEvent.roomId]: [...roomMessages, newEvent] };
 			});
-
-			await getCurrentRoomsMembers();
 		};
 
-		socketRef.current.on('message_activity', handleNewMessage);
-		socketRef.current.on('file_activity', handleFileMessage);
-		socketRef.current.on('event_activity', handleActivityMessage);
+		socket.on('message_activity', handleNewMessage);
+		socket.on('file_activity', handleFileMessage);
+		socket.on('activity_message', handleActivityMessage);
 
 		return () => {
-			socketRef.current.off('message_activity', handleNewMessage);
-			socketRef.current.off('file_activity', handleFileMessage);
-			socketRef.current.off('event_activity', handleActivityMessage);
+			socket.off('message_activity', handleNewMessage);
+			socket.off('file_activity', handleFileMessage);
+			socket.off('activity_message', handleActivityMessage);
 		};
-	}, [socketRef.current, user, currentRoom]);
+	}, [socket, state]);
+
+	const emitEvent = (eventName, data) => {
+		socket.emit(eventName, data);
+	};
 
 	const NO_MORE_MESSAGES_LEFT = -1;
 
@@ -139,7 +117,7 @@ export const ChatProvider = ({ children }) => {
 
 				setRooms(rooms);
 
-				socketRef.current.emit(
+				emitEvent(
 					'join_rooms',
 					rooms.map((room) => room._id)
 				);
@@ -157,7 +135,7 @@ export const ChatProvider = ({ children }) => {
 		try {
 			const joinActivity = await createRoom(newRoomName);
 
-			socketRef.current.emit('join_room', joinActivity.roomId);
+			emitEvent('join_room', joinActivity.roomId);
 
 			const rooms = await getMyRooms();
 
@@ -165,7 +143,7 @@ export const ChatProvider = ({ children }) => {
 
 			setRooms(rooms);
 
-			socketRef.current.emit('event_activity', joinActivity, joinActivity.roomId);
+			emitEvent('event_activity', joinActivity);
 		} catch (err) {
 			console.error(err);
 		}
@@ -175,7 +153,7 @@ export const ChatProvider = ({ children }) => {
 		try {
 			const joinActivity = await joinRoom(joinCode);
 
-			socketRef.current.emit('join_room', joinActivity.roomId);
+			emitEvent('join_room', joinActivity.roomId);
 
 			const rooms = await getMyRooms();
 
@@ -183,7 +161,7 @@ export const ChatProvider = ({ children }) => {
 
 			setRooms(rooms);
 
-			socketRef.current.emit('event_activity', joinActivity, joinActivity.roomId);
+			emitEvent('event_activity', joinActivity);
 		} catch (err) {
 			console.error(err);
 		}
@@ -246,7 +224,7 @@ export const ChatProvider = ({ children }) => {
 		try {
 			const message = await sendMessageInRoom(roomId, content);
 
-			socketRef.current.emit('message_activity', message, currentRoom._id);
+			emitEvent('message_activity', message);
 		} catch (error) {
 			console.error('Failed to send message:', error);
 		}
@@ -256,7 +234,7 @@ export const ChatProvider = ({ children }) => {
 		try {
 			const activity = await sendFileInRoom(roomId, fileContent);
 
-			socketRef.current.emit('file_activity', activity, currentRoom._id);
+			emitEvent('file_activity', activity);
 		} catch (error) {
 			console.error('Failed to send file:', error);
 		}
@@ -283,26 +261,20 @@ export const ChatProvider = ({ children }) => {
 
 		setCurrentRoom(null);
 
-		socketRef.current.emit('event_activity', leaveActivity, currentRoom._id);
+		emitEvent('event_activity', leaveActivity);
 	};
 
 	const kickUserFromCurrentRoom = async (userId) => {
 		const kickActivity = await kickUserFromRoom(userId, currentRoom._id);
 
-		socketRef.current.emit('event_activity', kickActivity, currentRoom._id);
-	};
-
-	const getCurrentRoomsMembers = async () => {
-		const updatedListOfRoomMembers = await getRoomMembers(currentRoom._id);
-
-		setCurrentRoomMembers(updatedListOfRoomMembers);
+		emitEvent('event_activity', kickActivity);
 	};
 
 	const contextValue = {
+		emitEvent,
 		rooms,
 		messages: roomsMessages,
 		currentRoom,
-		currentRoomMembers,
 		setRooms,
 		setCurrentRoom,
 		createNewRoom,
@@ -314,8 +286,7 @@ export const ChatProvider = ({ children }) => {
 		resetCurrentRoomCode,
 		leaveCurrentRoom,
 		kickUserFromCurrentRoom,
-		getCurrentRoomsMembers,
 	};
 
-	return <ChatContext.Provider value={contextValue}>{children}</ChatContext.Provider>;
+	return <SocketContext.Provider value={contextValue}>{children}</SocketContext.Provider>;
 };

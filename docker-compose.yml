@@ -1,38 +1,38 @@
-version: '3.8'
+version: '3'
 
 services:
-  react-app:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - '3000:3000'
-    networks:
-      - frontend
-      - backend
+    backend:
+        build: ./backend
+        environment:
+        - NODE_ENV=production
+        ports:
+        - '8080:8080'
+        depends_on:
+        - mongodb
+        - redis
+        - libretranslate
 
-  node-app:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - '8080:8080'
-    networks:
-      - frontend
-      - backend
-      # - cache
-      - translate
+    frontend:
+        build: ./frontend
+        ports:
+        - '3000:3000'
+        depends_on:
+        - backend
 
-  libretranslate:
-    image: libretranslate/libretranslate
-    tty: true
-    ports:
-      - '6000:5000'
-    networks:
-      - translate
+    mongodb:
+        image: mongo:7.0
+        volumes:
+        - mongodb-data:/data/db
 
-networks:
-  frontend:
-  backend:
-  translate:
-    driver: bridge
+    redis:
+        image: redis
+        volumes:
+        - redis-data:/data
+
+    libretranslate:
+        image: libretranslate/libretranslate
+        tty: true
+
+volumes:
+    mongodb-data:
+    redis-data:

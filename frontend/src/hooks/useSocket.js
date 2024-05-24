@@ -1,47 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import { io } from 'socket.io-client';
 
-import env from '../config/env';
+let globalSocket = null;
 
-export let sharedSocket;
+export const useSocket = (events) => {
+	const createSocket = () => {
+		if (!globalSocket) {
+			globalSocket = io(process.env.REACT_APP_API_URL, {
+				withCredentials: true,
+			});
+		}
+		return globalSocket;
+	};
 
-export const resetSharedSocket = () => {
-  if (sharedSocket) {
-    sharedSocket.disconnect();
-  }
+	useEffect(() => {
+		const newSocket = createSocket();
 
-  sharedSocket = null;
-};
+		if (events && events.length) {
+			events.forEach(({ eventName, callback }) => {
+				console.log('Setting up event listener for:', eventName);
 
-export const useSocket = (eventName, callback) => {
-  const [socket, setSocket] = useState(null);
+				newSocket.on(eventName, callback);
+			});
+		}
 
-  useEffect(() => {
-    if (!sharedSocket) {
-      sharedSocket = io(process.env.REACT_APP_API_URL, {
-        withCredentials: true,
-      });
-    }
+		return () => {
+			if (events && events.length && newSocket) {
+				events.forEach(({ eventName, callback }) => {
+					newSocket.off(eventName, callback);
+				});
+			}
 
-    setSocket(sharedSocket);
+			newSocket.disconnect();
+		};
+	}, [events]);
 
-    if (eventName && callback) {
-      sharedSocket.on(eventName, callback);
-    }
+	const emitEvent = (eventName, data) => {
+		const newSocket = createSocket();
 
-    return () => {
-      if (eventName && callback) {
-        sharedSocket.off(eventName, callback);
-      }
-    };
-  }, [eventName, callback]);
+		console.log('Emit event:', eventName);
 
-  const emitEvent = (eventName, data) => {
-    if (sharedSocket) {
-      sharedSocket.emit(eventName, data);
-    }
-  };
+		newSocket.emit(eventName, data);
+	};
 
-  return { emitEvent };
+	return { emitEvent };
 };

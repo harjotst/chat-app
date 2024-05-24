@@ -11,41 +11,36 @@ import UnprotectedRoute from './auth/UnprotectedRoute';
 import ProtectedRoute from './auth/ProtectedRoute';
 
 import { validateSession } from './services/user';
+
 import { ChatProvider } from './context/ChatContext';
 
 function App() {
-  const { setUser } = useUser();
+	const { setUser } = useUser();
 
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const session = await validateSession();
+	useEffect(() => {
+		const checkSession = async () => {
+			try {
+				const session = await validateSession();
 
-        setUser(session.user);
-      } catch (error) {
-        console.log('Session is invalid:', error);
-      }
-    };
+				setUser(session.user);
+			} catch (error) {
+				console.log('Session is invalid:', error);
+			}
+		};
 
-    checkSession();
-  }, []);
+		checkSession();
+	}, []);
 
-  return (
-    <ChatProvider>
-      <Router>
-        <Routes>
-          <Route
-            path='/'
-            element={<UnprotectedRoute children={<SignUpLogIn />} />}
-          />
-          <Route
-            path='/chat'
-            element={<ProtectedRoute children={<Chat />} />}
-          />
-        </Routes>
-      </Router>
-    </ChatProvider>
-  );
+	return (
+		<ChatProvider>
+			<Router>
+				<Routes>
+					<Route path='/' element={<UnprotectedRoute children={<SignUpLogIn />} />} />
+					<Route path='/chat' element={<ProtectedRoute children={<Chat />} />} />
+				</Routes>
+			</Router>
+		</ChatProvider>
+	);
 }
 
 export default App;

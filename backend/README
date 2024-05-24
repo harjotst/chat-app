@@ -1,0 +1,11 @@
+To pull libretranslate, do the following:
+
+    docker pull libretranslate/libretranslate:latest
+
+To run libretranslate, do the following:
+
+    docker run -it libretranslate/libretranslate:latest
+
+To run redis-server, do the following:
+
+    redis-server

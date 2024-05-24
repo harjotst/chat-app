@@ -20,7 +20,7 @@ router.post('/register', async (req, res) => {
 
   req.session.user = {
     id: user._id,
-    name: user.username,
+    username: user.username,
     email: user.email,
     preferredLanguage,
   };
@@ -52,9 +52,9 @@ router.post('/login', async (req, res) => {
 
   req.session.user = {
     id: user._id,
-    name: user.username,
+    username: user.username,
     email: user.email,
-    pfp: user.profilePicture,
+    profilePicture: user.profilePicture,
     preferredLanguage: user.preferredLanguage,
   };
 

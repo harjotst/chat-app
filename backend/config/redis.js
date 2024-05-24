@@ -3,9 +3,12 @@ const session = require('express-session');
 const redis = require('redis');
 const config = require('../config/config');
 
+console.log(config.REDIS_HOST, config.REDIS_PORT);
+
 const redisClient = redis.createClient({
+  // url: `${config.REDIS_HOST}:${config.REDIS_PORT}`,
   host: config.REDIS_HOST,
-  port: config.REDIS_PORT,
+  // port: config.REDIS_PORT,
   // password: config.REDIS_SECRET,
   retry_strategy: function (options) {
     if (options.attempt > 10) {
